@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Learn & Play Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -15,11 +15,11 @@
             --card-blue: #42A5F5;
             --card-green: #66BB6A;
             --card-pink: #EC407A;
-            --card-yellow: #FFCA28;
-            --btn-green: #66BB6A;
-            --btn-pink: #EC407A;
-            --btn-blue: #42A5F5;
-            --btn-yellow: #FFCA28;
+            --card-yellow: #FFB300;
+            --btn-green: #4CAF50;
+            --btn-pink: #D81B60;
+            --btn-blue: #1E88E5;
+            --btn-yellow: #F57F17;
         }
 
         * { box-sizing: border-box; }
@@ -32,19 +32,39 @@
             color: var(--text-dark);
             display: flex;
             justify-content: center;
-            background-image: radial-gradient(#BDE0FE 20%, transparent 20%);
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
+            background-image: radial-gradient(rgba(255,255,255,0.8) 2px, transparent 2px);
+            background-position: 0 0, 15px 15px;
+            background-size: 30px 30px;
+            position: relative;
+            min-height: 100vh;
         }
 
+        /* --- MAGICAL BACKGROUND ANIMATIONS --- */
+        .bg-shapes {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1; overflow: hidden;
+        }
+        .shape {
+            position: absolute; border-radius: 50%; opacity: 0.4;
+            animation: floatUp 15s linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) scale(0.8) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.4; }
+            80% { opacity: 0.4; }
+            100% { transform: translateY(-10vh) scale(1.2) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- DASHBOARD CONTAINER --- */
         .dashboard-container {
             width: 100%;
-            max-width: 1000px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 30px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            backdrop-filter: blur(10px);
+            max-width: 1050px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 40px;
+            padding: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08), inset 0 0 0 4px rgba(255,255,255,0.5);
+            backdrop-filter: blur(15px);
+            z-index: 1;
         }
 
         /* --- HEADER --- */
@@ -52,104 +72,207 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(90deg, #42A5F5, #2196F3);
+            background: linear-gradient(135deg, #42A5F5, #29B6F6);
             border-radius: 50px;
-            padding: 10px 30px;
+            padding: 12px 30px;
             color: white;
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
-            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(66, 165, 245, 0.4), inset 0 4px 0 rgba(255,255,255,0.2);
+            margin-bottom: 35px;
             flex-wrap: wrap; 
             gap: 15px;
         }
 
-        .logo { font-size: 24px; font-weight: 900; text-shadow: 2px 2px 0px #FFCA28; letter-spacing: 1px; cursor: pointer; }
+        .logo { 
+            font-size: 26px; font-weight: 900; text-shadow: 2px 3px 0px #1565C0; 
+            letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
 
-        .nav-links { display: flex; gap: 30px; font-weight: 700; flex-wrap: wrap; justify-content: center; }
-        .nav-links div { cursor: pointer; padding: 5px 10px; border-radius: 15px; transition: 0.2s; }
-        .nav-links div:hover { background: rgba(255,255,255,0.2); }
-        .nav-links div.active { color: #FFCA28; text-shadow: 1px 1px 0px rgba(0,0,0,0.2); background: rgba(0,0,0,0.1); }
+        .nav-links { 
+            display: flex; gap: 10px; font-weight: 800; flex-wrap: wrap; justify-content: center; 
+            background: rgba(0,0,0,0.15); padding: 5px; border-radius: 30px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-links div { 
+            cursor: pointer; padding: 8px 20px; border-radius: 25px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            color: rgba(255,255,255,0.8);
+        }
+        .nav-links div:hover { color: white; transform: translateY(-2px); }
+        .nav-links div.active { 
+            color: #FFCA28; text-shadow: 1px 1px 0px rgba(0,0,0,0.2); 
+            background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
 
-        /* --- MAIN LAYOUT --- */
+        /* --- MAIN LAYOUT & ROUTING --- */
         .main-layout { display: flex; gap: 30px; flex-direction: column; }
         .content-area { width: 100%; display: flex; flex-direction: column; gap: 30px; }
-
-        /* --- SPA VIEW SYSTEM --- */
-        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        
+        .view-section { display: none; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
         /* --- GAME WRAPPER --- */
         .game-wrapper {
-            position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
-            border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            overflow: hidden; border: 4px solid #42A5F5; display: none; margin-bottom: 20px;
+            position: relative; width: 100%; aspect-ratio: 16 / 9; background: #111;
+            border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 6px #42A5F5;
+            overflow: hidden; display: none; margin-bottom: 20px;
         }
-        .game-wrapper.active { display: block; }
+        .game-wrapper.active { display: block; animation: popIn 0.4s ease-out; }
         iframe { width: 100%; height: 100%; border: none; }
-        #ad-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(10px); }
-        #fullscreen-btn { position: absolute; top: 15px; right: 15px; background: rgba(0, 0, 0, 0.5); color: white; border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 10px; width: 45px; height: 45px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: 0.2s; }
-        #fullscreen-btn:hover { background: var(--card-blue); border-color: white; transform: scale(1.1); }
+        
+        /* APPLE iOS FULLSCREEN FALLBACK */
+        .game-wrapper.ios-fullscreen {
+            position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;
+            z-index: 9999 !important; border-radius: 0 !important; border: none !important; margin: 0 !important; max-width: none !important;
+        }
+
+        #ad-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
+        #fullscreen-btn { 
+            position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.6); 
+            border-radius: 12px; width: 50px; height: 50px; font-size: 26px; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; z-index: 10; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(5px);
+        }
+        #fullscreen-btn:hover { background: #42A5F5; border-color: white; transform: scale(1.15) rotate(5deg); }
 
         /* --- HERO SECTION --- */
-        .hero { background: white; border-radius: 30px; padding: 40px; text-align: center; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.05); overflow: hidden; }
-        .hero h1 { margin: 0; font-size: 36px; font-weight: 900; color: #1E293B; position: relative; z-index: 2; }
-        .hero h2 { margin: 10px 0 30px; font-size: 24px; font-weight: 700; color: #475569; position: relative; z-index: 2; }
+        .hero { 
+            background: linear-gradient(135deg, #ffffff 0%, #f1f8ff 100%); 
+            border-radius: 40px; padding: 50px 30px; text-align: center; position: relative; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.06), inset 0 0 0 6px white; overflow: hidden; 
+        }
+        .hero h1 { margin: 0; font-size: 42px; font-weight: 900; color: #1E293B; letter-spacing: -1px; }
+        .hero h2 { margin: 10px 0 35px; font-size: 22px; font-weight: 700; color: #64748B; }
+        
         .action-buttons { display: flex; justify-content: center; gap: 20px; position: relative; z-index: 2; flex-wrap: wrap; }
-        .btn-3d { padding: 15px 30px; border-radius: 30px; font-weight: 900; font-size: 18px; color: white; border: none; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-3d:active { transform: translateY(4px); box-shadow: none !important; }
-        .btn-green { background: var(--btn-green); box-shadow: 0 6px 0 #4CAF50; }
-        .btn-pink { background: var(--btn-pink); box-shadow: 0 6px 0 #D81B60; }
-        .mascot { position: absolute; left: 20px; bottom: -10px; font-size: 100px; line-height: 1; z-index: 1; opacity: 0.9; }
+        
+        /* Premium 3D Buttons */
+        .btn-3d { 
+            padding: 16px 36px; border-radius: 35px; font-weight: 900; font-size: 20px; color: white; border: none; 
+            cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 12px; 
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-3d:active { transform: translateY(6px); }
+        .btn-green { background: #66BB6A; box-shadow: 0 8px 0 var(--btn-green), 0 15px 20px rgba(76, 175, 80, 0.3); }
+        .btn-green:active { box-shadow: 0 2px 0 var(--btn-green), 0 5px 10px rgba(76, 175, 80, 0.3); }
+        .btn-pink { background: #EC407A; box-shadow: 0 8px 0 var(--btn-pink), 0 15px 20px rgba(233, 30, 99, 0.3); }
+        .btn-pink:active { box-shadow: 0 2px 0 var(--btn-pink), 0 5px 10px rgba(233, 30, 99, 0.3); }
+        .btn-blue { background: #42A5F5; box-shadow: 0 8px 0 var(--btn-blue), 0 15px 20px rgba(33, 150, 243, 0.3); }
+        .btn-blue:active { box-shadow: 0 2px 0 var(--btn-blue), 0 5px 10px rgba(33, 150, 243, 0.3); }
+        .btn-yellow { background: #FFB300; box-shadow: 0 8px 0 #F57F17, 0 15px 20px rgba(255, 179, 0, 0.3); }
+        .btn-yellow:active { box-shadow: 0 2px 0 #F57F17, 0 5px 10px rgba(255, 179, 0, 0.3); }
+        .btn-purple { background: #AB47BC; box-shadow: 0 8px 0 #8E24AA, 0 15px 20px rgba(171, 71, 188, 0.3); }
+        .btn-purple:active { box-shadow: 0 2px 0 #8E24AA, 0 5px 10px rgba(171, 71, 188, 0.3); }
+        
+        .mascot { position: absolute; left: 30px; bottom: -20px; font-size: 130px; line-height: 1; z-index: 1; opacity: 0.9; transform-origin: bottom center; animation: wave 4s infinite ease-in-out; }
+        @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(5deg); } }
 
         /* --- GAMES GRID --- */
-        .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; width: 100%; }
-        .game-card { border-radius: 25px; padding: 20px; color: white; text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 220px; box-shadow: 0 8px 15px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer; }
-        .game-card:hover { transform: translateY(-5px); }
-        .game-card h3 { margin: 0; font-size: 20px; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        .game-icon { font-size: 50px; margin: 10px 0; }
-        .card-btn { border: none; border-radius: 20px; padding: 10px; font-weight: 900; color: white; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); width: 100%; }
-        .card-blue { background: var(--card-blue); } .card-green { background: var(--card-green); } .card-pink { background: var(--card-pink); } .card-yellow { background: var(--card-yellow); }
-        .btn-yellow { background: var(--btn-yellow); } .btn-blue { background: var(--btn-blue); }
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 25px; width: 100%; padding: 10px; }
+        
+        .game-card { 
+            border-radius: 30px; padding: 25px; color: white; text-align: center; display: flex; flex-direction: column; 
+            justify-content: space-between; height: 240px; box-shadow: 0 10px 20px rgba(0,0,0,0.1), inset 0 4px 0 rgba(255,255,255,0.2); 
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; position: relative; overflow: hidden;
+        }
+        .game-card:hover { transform: translateY(-12px) scale(1.02); box-shadow: 0 20px 30px rgba(0,0,0,0.15), inset 0 4px 0 rgba(255,255,255,0.3); }
+        .game-card::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); transition: 0.5s; }
+        .game-card:hover::after { left: 200%; }
+        
+        .game-card h3 { margin: 0; font-size: 22px; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); letter-spacing: 1px; }
+        .game-icon { font-size: 55px; margin: 10px 0; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2)); transition: 0.3s; }
+        .game-card:hover .game-icon { transform: scale(1.15) rotate(5deg); }
+        
+        .card-btn { 
+            border: none; border-radius: 20px; padding: 12px; font-weight: 900; color: white; cursor: pointer; 
+            box-shadow: 0 5px 0 rgba(0,0,0,0.2); width: 100%; font-size: 16px; text-transform: uppercase;
+        }
+
+        .card-blue { background: linear-gradient(135deg, #42A5F5, #1E88E5); } 
+        .card-green { background: linear-gradient(135deg, #66BB6A, #43A047); } 
+        .card-pink { background: linear-gradient(135deg, #EC407A, #D81B60); } 
+        .card-yellow { background: linear-gradient(135deg, #FFCA28, #FF8F00); }
+        
+        .card-blue .card-btn { background: var(--btn-yellow); color: #333; } 
+        .card-green .card-btn { background: var(--btn-yellow); color: #333; } 
+        .card-pink .card-btn { background: var(--btn-blue); } 
+        .card-yellow .card-btn { background: var(--btn-blue); }
+
+        /* --- LEARNING CENTER (TV FRAME) --- */
+        .tv-frame {
+            background: #FFCA28; border: 8px solid #FFA000; border-radius: 30px; padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.5);
+            position: relative;
+        }
+        .tv-frame::before {
+            content: '● ●'; position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%);
+            font-size: 20px; color: #FFA000; letter-spacing: 15px;
+        }
+        .video-container {
+            position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; 
+            border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            background: #111; border: 10px solid #333;
+        }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+        /* --- INFO CARDS --- */
+        .info-card {
+            padding: 25px; border-radius: 25px; flex: 1; min-width: 220px; text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); transition: transform 0.2s;
+        }
+        .info-card:hover { transform: translateY(-5px); }
+        
+        .faq-item { margin-bottom: 25px; }
+        .faq-item h3 { margin: 0 0 5px 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+        .faq-item p { margin: 0; color: #475569; font-size: 16px; line-height: 1.5; padding-left: 32px; }
 
         /* --- MODAL SYSTEM --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(8px); }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 30px; padding: 30px; text-align: center; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; font-weight: bold; cursor: pointer; color: #94A3B8; }
-        .close-modal:hover { color: #EF4444; }
+        .modal-content { background: white; width: 90%; max-width: 450px; border-radius: 40px; padding: 40px; text-align: center; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 6px solid #E3F2FD; }
+        .close-modal { position: absolute; top: 15px; right: 20px; background: #F1F5F9; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; font-weight: bold; cursor: pointer; color: #64748B; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .close-modal:hover { background: #FFEBEE; color: #EF4444; transform: rotate(90deg); }
 
         /* --- FOOTER --- */
-        footer { margin-top: 30px; display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; color: #64748B; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; }
-        .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
-        .footer-links span { cursor: pointer; transition: 0.2s; }
-        .footer-links span:hover { color: var(--card-blue); }
+        footer { margin-top: 40px; display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; color: #64748B; flex-wrap: wrap; gap: 15px; padding: 20px; background: rgba(255,255,255,0.5); border-radius: 20px; }
+        .footer-links { display: flex; gap: 25px; flex-wrap: wrap; }
+        .footer-links span { cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+        .footer-links span:hover { color: var(--card-blue); transform: translateY(-2px); }
 
         /* --- RESPONSIVE --- */
         @media (max-width: 1024px) {
-            header { justify-content: center; text-align: center; border-radius: 30px; }
-            .logo { width: 100%; margin-bottom: 5px; }
+            header { justify-content: center; text-align: center; border-radius: 35px; }
+            .logo { width: 100%; margin-bottom: 10px; justify-content: center; }
         }
         @media (max-width: 600px) {
             body { padding: 10px; }
-            .dashboard-container { padding: 15px; border-radius: 20px; }
-            .hero { padding: 30px 20px; }
-            .hero h1 { font-size: 28px; }
+            .dashboard-container { padding: 15px; border-radius: 25px; }
+            .hero { padding: 40px 20px 30px; border-radius: 30px; }
+            .hero h1 { font-size: 32px; }
             .hero h2 { font-size: 18px; }
             .action-buttons { flex-direction: column; }
-            .btn-3d { width: 100%; }
-            .mascot { font-size: 60px; left: -10px; opacity: 0.2; } 
+            .btn-3d { width: 100%; font-size: 18px; }
+            .mascot { font-size: 80px; left: -15px; opacity: 0.15; }
+            .game-card { height: auto; padding: 30px; }
+            .tv-frame { border-width: 4px; padding: 10px; }
+            .video-container { border-width: 4px; }
             footer { flex-direction: column; align-items: center; text-align: center; }
-            .footer-links { justify-content: center; }
+            .footer-links { justify-content: center; gap: 15px; }
         }
     </style>
 </head>
 <body>
 
+<div class="bg-shapes">
+    <div class="shape" style="width: 80px; height: 80px; background: #FFCA28; left: 10%; animation-duration: 12s; animation-delay: 0s;"></div>
+    <div class="shape" style="width: 120px; height: 120px; background: #42A5F5; left: 70%; animation-duration: 18s; animation-delay: 2s;"></div>
+    <div class="shape" style="width: 50px; height: 50px; background: #EC407A; left: 40%; animation-duration: 10s; animation-delay: 5s;"></div>
+    <div class="shape" style="width: 90px; height: 90px; background: #66BB6A; left: 85%; animation-duration: 15s; animation-delay: 1s;"></div>
+    <div class="shape" style="width: 60px; height: 60px; background: #AB47BC; left: 25%; animation-duration: 14s; animation-delay: 6s;"></div>
+</div>
+
 <div class="dashboard-container">
     
     <header>
-        <div class="logo" onclick="switchView('home')">LEARN & PLAY</div>
+        <div class="logo" onclick="switchView('home')">✨ LEARN & PLAY</div>
         <div class="nav-links">
             <div id="nav-home" class="active" onclick="switchView('home')">Home</div>
             <div id="nav-games" onclick="switchView('games')">Games</div>
@@ -158,15 +281,14 @@
     </header>
 
     <div class="main-layout">
-        
         <div class="content-area">
             
             <div class="game-wrapper" id="master-game-player">
                 <button id="fullscreen-btn" onclick="toggleFullScreen()" title="Go Fullscreen">⛶</button>
                 <div id="ad-overlay">
-                    <div class="star-loader" style="font-size: 50px;">⭐</div>
-                    <h2 style="color: #42A5F5; margin-top: 20px;">AD BREAK</h2>
-                    <p style="color: white;">Loading...</p>
+                    <div class="star-loader" style="font-size: 60px; animation: wave 1s infinite alternate;">⭐</div>
+                    <h2 style="color: #42A5F5; margin-top: 25px; font-size: 32px;">AD BREAK</h2>
+                    <p style="color: white; font-size: 18px;">Loading awesomeness...</p>
                 </div>
                 <iframe id="game-runner" src="about:blank" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
@@ -174,8 +296,8 @@
             <div id="view-home" class="view-section active">
                 <div class="hero" style="margin-bottom: 30px;">
                     <div class="mascot">🦁</div>
-                    <h1>LET'S PLAY & LEARN!</h1>
-                    <h2>Ready to Have Fun?</h2>
+                    <h1 style="color: #1E88E5;">LET'S PLAY & LEARN!</h1>
+                    <h2>Are you ready for an adventure?</h2>
                     <div class="action-buttons">
                         <button class="btn-3d btn-green" onclick="switchView('learn')">📖 START LEARNING</button>
                         <button class="btn-3d btn-pink" onclick="switchView('games')">🕹️ PLAY GAMES</button>
@@ -184,40 +306,164 @@
             </div>
 
             <div id="view-games" class="view-section active">
-                <h2 style="color: #1E293B; margin-top: 0;">Choose a Game! 🎮</h2>
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">🎮</span> Choose a Game! 
+                </h2>
                 <div class="games-grid">
                     <div class="game-card card-blue" onclick="loadGame('games/abc-fun/index.html')">
                         <h3>ABC<br>FUN</h3>
                         <div class="game-icon">🍎🔤</div>
-                        <button class="card-btn btn-yellow">START</button>
+                        <button class="card-btn">START PLAYING</button>
                     </div>
                     <div class="game-card card-green" onclick="loadGame('games/number-quest/index.html')">
                         <h3>NUMBER<br>QUEST</h3>
                         <div class="game-icon">🔢✨</div>
-                        <button class="card-btn btn-yellow">START</button>
+                        <button class="card-btn">START PLAYING</button>
                     </div>
                     <div class="game-card card-pink" onclick="loadGame('games/animal-adventure/index.html')">
                         <h3>ANIMAL<br>ADVENTURE</h3>
                         <div class="game-icon">🦒🐒</div>
-                        <button class="card-btn btn-blue">START</button>
+                        <button class="card-btn">START PLAYING</button>
                     </div>
                     <div class="game-card card-yellow" onclick="loadGame('games/word-magic/index.html')">
                         <h3>WORD<br>MAGIC</h3>
                         <div class="game-icon">📚🔠</div>
-                        <button class="card-btn btn-blue">START</button>
+                        <button class="card-btn">START PLAYING</button>
+                    </div>
+                    <div class="game-card card-yellow" onclick="loadGame('games/balloon-jump/index.html')">
+                        <h3>BALLOON<br>JUMP</h3>
+                        <div class="game-icon">🎈☁️</div>
+                        <button class="card-btn">START PLAYING</button>
+                    </div>
+                    <div class="game-card card-green" onclick="loadGame('games/box-jump/index.html')">
+                        <h3>BOX<br>JUMP</h3>
+                        <div class="game-icon">📦🏃‍♂️</div>
+                        <button class="card-btn">START PLAYING</button>
                     </div>
                 </div>
             </div>
 
             <div id="view-learn" class="view-section">
-                <h2 style="color: #1E293B; margin-top: 0;">Learning Center 📚</h2>
-                <div class="hero" style="background: #FFF3E0; padding: 20px;">
-                    <h2 style="margin-top: 0; font-size: 22px; color: #1E293B;">Watch & Learn: A for Apple 🍎</h2>
-                    
-                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
-                        <iframe src="https://www.youtube.com/embed/jiey2s2Hjvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">📺</span> Learning Center
+                </h2>
+                <div class="hero" style="background: transparent; box-shadow: none; padding: 0;">
+                    <div class="tv-frame">
+                        <h2 style="margin-top: 0; font-size: 26px; color: #FFF; text-shadow: 2px 2px 0 #E65100;">Watch & Learn: A for Apple 🍎</h2>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/jiey2s2Hjvg?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
                     </div>
-                    
+                </div>
+            </div>
+
+            <div id="view-help" class="view-section">
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">❓</span> Help Center
+                </h2>
+                <div class="hero" style="background: white; text-align: left; padding: 40px;">
+                    <h2 style="color: #FFB300; margin-top: 0; font-size: 32px;">How can we help?</h2>
+                    <p style="font-size: 18px; color: #475569; line-height: 1.6;">Got a question or need some assistance? We are here for you!</p>
+
+                    <div style="margin-top: 30px;">
+                        <div class="faq-item">
+                            <h3 style="color: #42A5F5;">🕹️ My game isn't loading!</h3>
+                            <p>Make sure you have a stable internet connection. If the game still won't load, try refreshing the page or restarting your browser.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h3 style="color: #66BB6A;">💰 Is this app free?</h3>
+                            <p>Yes! All the games and learning materials are completely free to use. There are no hidden fees or subscriptions.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h3 style="color: #EC407A;">📧 How do I contact support?</h3>
+                            <p>You can email our friendly support team anytime at <strong>support@kidslearnhub.com</strong>. We try to respond within 24 hours!</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button class="btn-3d btn-yellow" onclick="switchView('home')" style="display: inline-flex; color: #333;">🏠 BACK TO HOME</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-parents" class="view-section">
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">👨‍👩‍👧</span> Parents Portal
+                </h2>
+                <div class="hero" style="background: white; text-align: left; padding: 40px;">
+                    <h2 style="color: #AB47BC; margin-top: 0; font-size: 32px;">Welcome, Parents!</h2>
+                    <p style="font-size: 18px; color: #475569; line-height: 1.6;">Kids Learn Hub is designed to be a friction-free, safe space for your children to explore, play, and learn without any stressful mechanics.</p>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 35px 0;">
+                        <div class="info-card" style="background: #F3E5F5;">
+                            <div style="font-size: 45px; margin-bottom: 10px;">🛑</div>
+                            <h3 style="color: #6A1B9A; margin: 0 0 10px 0; font-size: 22px;">No Accounts</h3>
+                            <p style="color: #8E24AA; margin: 0; font-size: 16px; font-weight: 700;">Zero data collection. Kids just click and play.</p>
+                        </div>
+                        <div class="info-card" style="background: #E8F5E9;">
+                            <div style="font-size: 45px; margin-bottom: 10px;">⏱️</div>
+                            <h3 style="color: #2E7D32; margin: 0 0 10px 0; font-size: 22px;">Paced Learning</h3>
+                            <p style="color: #4CAF50; margin: 0; font-size: 16px; font-weight: 700;">Simulated breaks act as healthy screen-time pauses.</p>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 18px; color: #475569; line-height: 1.6;">Our educational games are carefully crafted to improve motor skills, letter recognition, and basic math without overwhelming the child with complicated menus.</p>
+
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button class="btn-3d btn-purple" onclick="switchView('home')" style="display: inline-flex;">🏠 BACK TO HOME</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-about" class="view-section">
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">ℹ️</span> About Us
+                </h2>
+                <div class="hero" style="background: white; text-align: left; padding: 40px;">
+                    <h2 style="color: #66BB6A; margin-top: 0; font-size: 32px;">Learning Through Play! 🚀</h2>
+                    <p style="font-size: 18px; color: #475569; line-height: 1.6;">Welcome to <strong>Kids Learn Hub</strong>, a magical place where education meets entertainment. We believe that children learn best when they are having fun, exploring new worlds, and challenging themselves in a safe digital environment.</p>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 35px 0;">
+                        <div class="info-card" style="background: #E8F5E9;">
+                            <div style="font-size: 45px; margin-bottom: 10px;">🧠</div>
+                            <h3 style="color: #2E7D32; margin: 0 0 10px 0; font-size: 22px;">Smart</h3>
+                            <p style="color: #4CAF50; margin: 0; font-size: 16px; font-weight: 700;">Designed to boost cognitive skills.</p>
+                        </div>
+                        <div class="info-card" style="background: #E3F2FD;">
+                            <div style="font-size: 45px; margin-bottom: 10px;">🛡️</div>
+                            <h3 style="color: #1565C0; margin: 0 0 10px 0; font-size: 22px;">Safe</h3>
+                            <p style="color: #42A5F5; margin: 0; font-size: 16px; font-weight: 700;">100% kid-friendly and safe gameplay.</p>
+                        </div>
+                        <div class="info-card" style="background: #FCE4EC;">
+                            <div style="font-size: 45px; margin-bottom: 10px;">🎨</div>
+                            <h3 style="color: #C2185B; margin: 0 0 10px 0; font-size: 22px;">Creative</h3>
+                            <p style="color: #EC407A; margin: 0; font-size: 16px; font-weight: 700;">Inspiring imagination every day.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button class="btn-3d btn-green" onclick="switchView('home')" style="display: inline-flex;">🏠 LET'S PLAY!</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-privacy" class="view-section">
+                <h2 style="color: #1E293B; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 30px;">🔒</span> Privacy Policy
+                </h2>
+                <div class="hero" style="background: white; text-align: left; padding: 40px;">
+                    <h2 style="color: #42A5F5; margin-top: 0; font-size: 32px;">Safe, Secure, and Fun!</h2>
+                    <p style="font-size: 18px; color: #475569; line-height: 1.6;">At <strong>Kids Learn Hub</strong>, your child's safety is our #1 priority. Here is how we protect you:</p>
+                    <ul style="font-size: 18px; color: #475569; line-height: 1.8; margin-bottom: 30px;">
+                        <li><strong>No Personal Data:</strong> We do not ask for real names, addresses, or phone numbers.</li>
+                        <li><strong>COPPA Compliant:</strong> We follow all rules of the Children's Online Privacy Protection Act.</li>
+                        <li><strong>Safe Breaks Only:</strong> The screens you see between games are completely safe and built-in just for fun pacing. We do not track you.</li>
+                        <li><strong>No Chat Rooms:</strong> There is no way for strangers to talk to your child on our platform.</li>
+                    </ul>
+                    <p style="font-size: 18px; color: #475569;">If you have any questions, parents can email us at <strong>safety@kidslearnhub.com</strong>.</p>
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button class="btn-3d btn-blue" onclick="switchView('home')" style="display: inline-flex;">🏠 BACK TO HOME</button>
+                    </div>
                 </div>
             </div>
 
@@ -226,10 +472,10 @@
 
     <footer>
         <div class="footer-links">
-            <span onclick="openModal('Help Center', 'How can we help you today? Contact support at support@kidslearnhub.com')">❓ Help</span>
-            <span onclick="openModal('Parents Portal', 'Enter Parent PIN to view detailed analytics and child progress.')">👨‍👩‍👧 Parents</span>
-            <span onclick="openModal('About Us', 'We make learning fun for kids everywhere!')">ℹ️ About Us</span>
-            <span onclick="openModal('Privacy Policy', 'Your data is safe and strictly COPPA compliant.')">🔒 Privacy</span>
+            <span onclick="switchView('help')">❓ Help</span>
+            <span onclick="switchView('parents')">👨‍👩‍👧 Parents</span>
+            <span onclick="switchView('about')">ℹ️ About Us</span>
+            <span onclick="switchView('privacy')">🔒 Privacy</span>
         </div>
         <div>© 2026 Kids Learn Hub</div>
     </footer>
@@ -239,23 +485,22 @@
 <div class="modal-overlay" id="global-modal">
     <div class="modal-content">
         <span class="close-modal" onclick="closeModal()">×</span>
-        <h2 id="modal-title" style="color: #1E293B; margin-top: 0;">Title</h2>
-        <p id="modal-body" style="color: #475569; font-size: 18px;">Body text goes here...</p>
-        <button class="btn-3d btn-blue" style="width: 100%; margin-top: 20px;" onclick="closeModal()">Got it!</button>
+        <div style="font-size: 50px; margin-bottom: 10px;">👋</div>
+        <h2 id="modal-title" style="color: #1E293B; margin-top: 0; font-size: 28px;">Title</h2>
+        <p id="modal-body" style="color: #475569; font-size: 18px; line-height: 1.5;">Body text goes here...</p>
+        <button class="btn-3d btn-blue" style="width: 100%; margin-top: 25px;" onclick="closeModal()">Awesome!</button>
     </div>
 </div>
 
 <script>
-    // --- GLOBAL STATE ---
-    let globalData = {
-        coins: 500
-        
-    };
-
     // --- NAVIGATION & ROUTING LOGIC ---
     function switchView(viewName) {
         document.querySelectorAll('.nav-links div').forEach(el => el.classList.remove('active'));
-        document.getElementById(`nav-${viewName}`).classList.add('active');
+        
+        let activeNav = document.getElementById(`nav-${viewName}`);
+        if (activeNav) {
+            activeNav.classList.add('active');
+        }
 
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
 
@@ -263,13 +508,17 @@
             document.getElementById('view-home').classList.add('active');
             document.getElementById('view-games').classList.add('active');
         } else {
-            document.getElementById(`view-${viewName}`).classList.add('active');
+            let targetView = document.getElementById(`view-${viewName}`);
+            if (targetView) targetView.classList.add('active');
         }
 
         if (viewName !== 'games' && viewName !== 'home') {
             document.getElementById('master-game-player').classList.remove('active');
             document.getElementById('game-runner').src = "about:blank"; 
+            disablePseudoFullscreen(document.getElementById('master-game-player'));
         }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // --- GAME LOADING LOGIC ---
@@ -301,35 +550,56 @@
     // --- POKI SDK AD LOGIC ---
     window.addEventListener("message", (event) => {
         if (event.data.type === 'SHOW_AD') {
-            
             if(adOverlay) adOverlay.style.display = 'flex';
             gameIframe?.contentWindow?.postMessage({ type: 'AD_STARTED' }, '*');
 
             setTimeout(() => {
-                rewardPlayer(5);
-                
                 if(adOverlay) adOverlay.style.display = 'none';
                 gameIframe?.contentWindow?.postMessage({ type: 'AD_FINISHED' }, '*');
             }, 3000);
         }
     });
 
-    // --- ECONOMY LOGIC (Hidden) ---
-    function rewardPlayer(coinsAdded) {
-        globalData.coins += coinsAdded;
-        // Visual updates removed as requested. Data still tracks in the background.
-    }
-
-    // --- FULLSCREEN LOGIC ---
+    // --- APPLE/iOS COMPATIBLE FULLSCREEN LOGIC ---
     function toggleFullScreen() {
         const gameWrapper = document.getElementById('master-game-player');
-        if (!document.fullscreenElement) {
-            if (gameWrapper.requestFullscreen) gameWrapper.requestFullscreen();
-            else if (gameWrapper.webkitRequestFullscreen) gameWrapper.webkitRequestFullscreen();
+        
+        const isNativeFS = document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.msFullscreenElement;
+                           
+        const isPseudoFS = gameWrapper.classList.contains('ios-fullscreen');
+
+        if (!isNativeFS && !isPseudoFS) {
+            if (gameWrapper.requestFullscreen) {
+                gameWrapper.requestFullscreen().catch((err) => {
+                    console.log("Native fullscreen blocked, using iOS fallback.");
+                    enablePseudoFullscreen(gameWrapper);
+                });
+            } else if (gameWrapper.webkitRequestFullscreen) { 
+                gameWrapper.webkitRequestFullscreen();
+            } else {
+                enablePseudoFullscreen(gameWrapper);
+            }
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            if (isNativeFS) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } 
+            if (isPseudoFS) {
+                disablePseudoFullscreen(gameWrapper);
+            }
         }
+    }
+
+    function enablePseudoFullscreen(element) {
+        element.classList.add('ios-fullscreen');
+        document.body.style.overflow = 'hidden'; 
+    }
+
+    function disablePseudoFullscreen(element) {
+        element.classList.remove('ios-fullscreen');
+        document.body.style.overflow = ''; 
     }
 </script>
 </body>
