@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ABC Bubble Catch</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #E0FBFC; /* Soft blue sky */
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            touch-action: none; 
+            user-select: none;
+        }
+        canvas { display: block; }
+        
+        /* Top UI Bar */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            pointer-events: none; /* Let clicks pass through to canvas */
+        }
+
+        .stat-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+            border: 4px solid white;
+        }
+
+        /* Central Target Instruction */
+        #target-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FF6B6B;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 6px 0px #D9534F;
+            border: 4px solid white;
+            pointer-events: none;
+            text-align: center;
+        }
+        
+        #target-letter { color: #FFE66D; font-size: 36px; text-shadow: 2px 2px 0px rgba(0,0,0,0.2); }
+
+        @media (max-width: 600px) {
+            .stat-box { font-size: 18px; padding: 5px 10px; }
+            #target-container { font-size: 20px; padding: 5px 20px; top: 70px; }
+            #target-letter { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat-box" style="border-color: #4ECDC4;">⭐ <span id="score">0</span></div>
+        <div class="stat-box" style="border-color: #FF6B6B;"><span id="lives">❤️❤️❤️</span></div>
+    </div>
+    
+    <div id="target-container">
+        Find the letter: <br><span id="target-letter">A</span>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const targetLetterEl = document.getElementById("target-letter");
+
+// Game Variables
+let score = 0, lives = 3, gameActive = true, isPaused = false, spawnTimer = 0;
+let bubbles = [];
+let targetLetter = "A";
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const bubbleColors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#9267FF', '#FF9F1C', '#FF9ED2'];
+
+// --- POKI-STYLE SDK INTEGRATION ---
+window.parent.postMessage({ type: 'GAME_READY' }, '*');
+window.addEventListener("message", (e) => {
+    if (e.data.type === 'AD_STARTED') isPaused = true;
+    if (e.data.type === 'AD_FINISHED') { isPaused = false; restart(); }
+});
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+function pickNewTarget() {
+    targetLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+    targetLetterEl.innerText = targetLetter;
+}
+
+function spawnBubble() {
+    // 30% chance to guarantee the target letter spawns, otherwise random
+    let isTarget = Math.random() < 0.3;
+    let letter = isTarget ? targetLetter : alphabet[Math.floor(Math.random() * alphabet.length)];
+    
+    bubbles.push({
+        x: Math.random() * (canvas.width - 100) + 50,
+        y: canvas.height + 60, // Start below screen
+        radius: 40 + Math.random() * 15,
+        speed: 1.5 + Math.random() * 2 + (score / 15), // Slowly gets faster
+        color: bubbleColors[Math.floor(Math.random() * bubbleColors.length)],
+        letter: letter,
+        wobble: Math.random() * Math.PI * 2 // For side-to-side floating effect
+    });
+}
+
+// --- INPUT HANDLING ---
+function handleTap(ex, ey) {
+    if (!gameActive && !isPaused) return restart();
+    if (isPaused) return;
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        let b = bubbles[i];
+        let dist = Math.sqrt((ex - b.x)**2 + (ey - b.y)**2);
+        
+        if (dist < b.radius) {
+            // Hit a bubble!
+            if (b.letter === targetLetter) {
+                // Correct!
+                score++;
+                scoreEl.innerText = score;
+                pickNewTarget();
+                bubbles.splice(i, 1); // Remove popped bubble
+                
+                // Optional: Clear all bubbles on success to keep screen clean
+                if(bubbles.length > 5) bubbles = []; 
+                return;
+            } else {
+                // Wrong letter!
+                lives--;
+                updateLivesDisplay();
+                bubbles.splice(i, 1);
+                
+                if (lives <= 0) {
+                    gameActive = false;
+                    window.parent.postMessage({ type: 'SHOW_AD' }, '*');
+                }
+                return;
+            }
+        }
+    }
+}
+
+canvas.addEventListener("mousedown", e => handleTap(e.clientX, e.clientY));
+canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    handleTap(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive:false});
+
+function updateLivesDisplay() {
+    livesEl.innerText = "❤️".repeat(lives);
+}
+
+// --- GAME LOOP ---
+function update() {
+    if (!gameActive || isPaused) return;
+
+    spawnTimer++;
+    // Spawn faster as score increases, but cap it so it doesn't get impossible
+    let spawnRate = Math.max(30, 80 - (score * 2)); 
+    if (spawnTimer > spawnRate) {
+        spawnBubble();
+        spawnTimer = 0;
+    }
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        let b = bubbles[i];
+        b.y -= b.speed;
+        b.wobble += 0.05;
+        b.x += Math.sin(b.wobble) * 1.5; // Floating side-to-side
+
+        // Remove if it floats off the top
+        if (b.y + b.radius < -10) {
+            bubbles.splice(i, 1);
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Bubbles
+    bubbles.forEach(b => {
+        // Draw Bubble Shadow
+        ctx.beginPath();
+        ctx.arc(b.x + 5, b.y + 5, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.1)";
+        ctx.fill();
+
+        // Draw Bubble
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.stroke();
+
+        // Bubble Highlight (Shiny effect)
+        ctx.beginPath();
+        ctx.arc(b.x - b.radius * 0.3, b.y - b.radius * 0.3, b.radius * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.fill();
+
+        // Draw Letter
+        ctx.fillStyle = "white";
+        ctx.font = "bold " + (b.radius * 1.2) + "px 'Comic Sans MS', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(b.letter, b.x, b.y + 4);
+        
+        // Letter Drop Shadow
+        ctx.strokeStyle = "rgba(0,0,0,0.2)";
+        ctx.lineWidth = 2;
+        ctx.strokeText(b.letter, b.x, b.y + 4);
+    });
+
+    // Game Over Screen
+    if (!gameActive) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#FF6B6B";
+        ctx.textAlign = "center";
+        ctx.font = "bold 50px 'Comic Sans MS'";
+        ctx.fillText("Oops! Out of Hearts!", canvas.width / 2, canvas.height / 2);
+        
+        ctx.fillStyle = "#333";
+        ctx.font = "24px 'Comic Sans MS'";
+        ctx.fillText("Loading Ad & Restarting...", canvas.width / 2, canvas.height / 2 + 50);
+    }
+
+    update();
+    requestAnimationFrame(draw);
+}
+
+function restart() {
+    score = 0; 
+    lives = 3; 
+    bubbles = []; 
+    gameActive = true;
+    scoreEl.innerText = score;
+    updateLivesDisplay();
+    pickNewTarget();
+}
+
+// Start Game
+pickNewTarget();
+draw();
+</script>
+</body>
+</html>

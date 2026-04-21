@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Animal Adventure Peek-a-Boo</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 60%, #81C784 60%, #4CAF50 100%); /* Sky to Jungle Ground */
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            touch-action: none; 
+            user-select: none;
+        }
+        canvas { display: block; }
+        
+        /* Top UI Bar */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+            border: 4px solid white;
+        }
+
+        /* Central Target Instruction */
+        #target-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #EC407A; /* Pink from the dashboard card */
+            color: white;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 6px 0px #C2185B;
+            border: 4px solid white;
+            pointer-events: none;
+            text-align: center;
+            z-index: 10;
+        }
+        
+        #target-animal { 
+            color: #FFE66D; 
+            font-size: 32px; 
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2); 
+            display: block;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .stat-box { font-size: 18px; padding: 5px 10px; }
+            #target-container { font-size: 18px; padding: 5px 20px; top: 70px; }
+            #target-animal { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat-box" style="border-color: #EC407A;">⭐ <span id="score">0</span></div>
+        <div class="stat-box" style="border-color: #FF6B6B;"><span id="lives">❤️❤️❤️</span></div>
+    </div>
+    
+    <div id="target-container">
+        Find the... <br><span id="target-animal">Giraffe 🦒</span>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const targetAnimalEl = document.getElementById("target-animal");
+
+// Game Variables
+let score = 0, lives = 3, gameActive = true, isPaused = false;
+let targetIndex = 0;
+
+// The Animals
+const animalData = [
+    { name: "Giraffe", emoji: "🦒" },
+    { name: "Monkey", emoji: "🐒" },
+    { name: "Tiger", emoji: "🐯" },
+    { name: "Elephant", emoji: "🐘" },
+    { name: "Panda", emoji: "🐼" },
+    { name: "Lion", emoji: "🦁" },
+    { name: "Piggy", emoji: "🐷" },
+    { name: "Frog", emoji: "🐸" }
+];
+
+// The "Holes" (Bushes) where animals peek out
+let bushes = [];
+
+// --- POKI-STYLE SDK INTEGRATION ---
+window.parent.postMessage({ type: 'GAME_READY' }, '*');
+window.addEventListener("message", (e) => {
+    if (e.data.type === 'AD_STARTED') isPaused = true;
+    if (e.data.type === 'AD_FINISHED') { isPaused = false; restart(); }
+});
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Recalculate Bush Positions based on screen size (2 rows: 3 in back, 2 in front)
+    let w = canvas.width;
+    let h = canvas.height;
+    let baseY = h * 0.6; // Ground line
+    
+    bushes = [
+        // Back row
+        createBush(w * 0.2, baseY + 20),
+        createBush(w * 0.5, baseY),
+        createBush(w * 0.8, baseY + 20),
+        // Front row
+        createBush(w * 0.35, baseY + 120),
+        createBush(w * 0.65, baseY + 120)
+    ];
+}
+
+function createBush(x, y) {
+    return {
+        x: x, y: y, radius: Math.min(canvas.width * 0.15, 60),
+        animal: null, // Which animal is here
+        state: 'hidden', // hidden, rising, idle, falling
+        yOffset: 0, // Animation offset
+        timer: 0
+    };
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+function pickNewTarget() {
+    targetIndex = Math.floor(Math.random() * animalData.length);
+    targetAnimalEl.innerText = `${animalData[targetIndex].name} ${animalData[targetIndex].emoji}`;
+}
+
+// --- INPUT HANDLING ---
+function handleTap(ex, ey) {
+    if (!gameActive && !isPaused) return restart();
+    if (isPaused) return;
+
+    for (let i = 0; i < bushes.length; i++) {
+        let b = bushes[i];
+        if (b.state === 'idle' || b.state === 'rising') {
+            // Check if tap is within the animal's hit box (above the bush)
+            let hitY = b.y - b.radius - b.yOffset;
+            let dist = Math.sqrt((ex - b.x)**2 + (ey - hitY)**2);
+            
+            if (dist < b.radius * 1.5) {
+                if (b.animal.emoji === animalData[targetIndex].emoji) {
+                    // Correct Animal!
+                    score++;
+                    scoreEl.innerText = score;
+                    createParticles(b.x, hitY, "#FFE66D");
+                    b.state = 'falling';
+                    pickNewTarget();
+                } else {
+                    // Wrong Animal!
+                    lives--;
+                    livesEl.innerText = "❤️".repeat(lives);
+                    createParticles(b.x, hitY, "#FF6B6B");
+                    b.state = 'falling';
+                    
+                    if (lives <= 0) {
+                        gameActive = false;
+                        window.parent.postMessage({ type: 'SHOW_AD' }, '*');
+                    }
+                }
+                return; // Stop checking other bushes
+            }
+        }
+    }
+}
+
+canvas.addEventListener("mousedown", e => handleTap(e.clientX, e.clientY));
+canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    handleTap(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive:false});
+
+// --- PARTICLES (For Success/Fail Effects) ---
+let particles = [];
+function createParticles(x, y, color) {
+    for(let i=0; i<10; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 10 - 5,
+            life: 1.0, color: color
+        });
+    }
+}
+
+// --- GAME LOOP ---
+function update() {
+    if (!gameActive || isPaused) return;
+
+    bushes.forEach(b => {
+        if (b.state === 'hidden') {
+            b.timer--;
+            // Randomly pop up
+            if (b.timer <= 0 && Math.random() < 0.02) {
+                b.state = 'rising';
+                // 30% chance to guarantee target, otherwise random
+                let isTarget = Math.random() < 0.3;
+                b.animal = isTarget ? animalData[targetIndex] : animalData[Math.floor(Math.random() * animalData.length)];
+            }
+        } else if (b.state === 'rising') {
+            b.yOffset += 4 + (score * 0.1); // Rise faster as score goes up
+            if (b.yOffset >= b.radius * 1.5) {
+                b.state = 'idle';
+                b.timer = 80 - (score * 2); // Stay idle shorter as score goes up
+                if(b.timer < 30) b.timer = 30; // Min idle time
+            }
+        } else if (b.state === 'idle') {
+            b.timer--;
+            if (b.timer <= 0) b.state = 'falling';
+        } else if (b.state === 'falling') {
+            b.yOffset -= 6;
+            if (b.yOffset <= 0) {
+                b.yOffset = 0;
+                b.state = 'hidden';
+                b.timer = Math.random() * 60 + 30; // Random wait before next pop
+            }
+        }
+    });
+
+    // Update Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.5; // Gravity
+        p.life -= 0.05;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Sort bushes by Y coordinate so front bushes overlap back bushes
+    let sortedBushes = [...bushes].sort((a, b) => a.y - b.y);
+
+    sortedBushes.forEach(b => {
+        // Draw Animal (If not hidden)
+        if (b.state !== 'hidden' && b.animal) {
+            ctx.font = `${b.radius * 1.8}px Arial`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(b.animal.emoji, b.x, b.y - b.yOffset);
+        }
+
+        // Draw Bush (Overlaps the bottom half of the animal)
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, Math.PI, 0); // Semi-circle
+        ctx.fillStyle = "#2E7D32"; // Dark Green
+        ctx.fill();
+        
+        // Bush highlight
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius * 0.8, Math.PI, 0);
+        ctx.fillStyle = "#388E3C"; // Lighter Green
+        ctx.fill();
+        
+        // Bush base line
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.radius - 10, b.y);
+        ctx.lineTo(b.x + b.radius + 10, b.y);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "#1B5E20";
+        ctx.stroke();
+    });
+
+    // Draw Particles
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Game Over Screen
+    if (!gameActive) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#EC407A";
+        ctx.textAlign = "center";
+        ctx.font = "bold 50px 'Comic Sans MS'";
+        ctx.fillText("Oh no! Out of Hearts!", canvas.width / 2, canvas.height / 2);
+        
+        ctx.fillStyle = "#333";
+        ctx.font = "24px 'Comic Sans MS'";
+        ctx.fillText("Loading Ad & Restarting...", canvas.width / 2, canvas.height / 2 + 50);
+    }
+
+    update();
+    requestAnimationFrame(draw);
+}
+
+function restart() {
+    score = 0; 
+    lives = 3; 
+    gameActive = true;
+    scoreEl.innerText = score;
+    livesEl.innerText = "❤️❤️❤️";
+    bushes.forEach(b => { b.state = 'hidden'; b.yOffset = 0; b.timer = Math.random() * 60; });
+    particles = [];
+    pickNewTarget();
+}
+
+// Start Game
+pickNewTarget();
+draw();
+</script>
+</body>
+</html>

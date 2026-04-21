@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Magic</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: linear-gradient(135deg, #FFCA28 0%, #FF9800 100%); /* Magical Orange/Yellow */
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            touch-action: none; 
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Top UI Bar */
+        #ui {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+            border: 4px solid white;
+        }
+
+        /* Main Game Area */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        /* The Picture to Spell */
+        #target-emoji {
+            font-size: 100px;
+            background: white;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 10px 0px rgba(0,0,0,0.1);
+            border: 8px solid #FFF8E1;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* The Empty Slots */
+        #slots-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        .slot {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.3);
+            border: 4px dashed white;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        }
+
+        .slot.filled {
+            background: #4ECDC4;
+            border-style: solid;
+            transform: scale(1.1);
+            transition: 0.2s;
+        }
+
+        /* The Scrambled Letters */
+        #letters-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .letter-btn {
+            background: #9267FF; /* Magical Purple */
+            color: white;
+            border: 4px solid white;
+            border-radius: 15px;
+            font-size: 40px;
+            font-weight: 900;
+            width: 75px;
+            height: 75px;
+            cursor: pointer;
+            box-shadow: 0 8px 0px #6A1B9A;
+            transition: all 0.1s;
+            font-family: 'Comic Sans MS', sans-serif;
+            pointer-events: auto;
+        }
+
+        .letter-btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 0px 0px #6A1B9A;
+        }
+
+        .letter-btn.hidden {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Game Over Overlay */
+        #game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        @media (max-width: 600px) {
+            .stat-box { font-size: 18px; padding: 5px 10px; }
+            #target-emoji { font-size: 80px; width: 120px; height: 120px; }
+            .slot { width: 55px; height: 55px; font-size: 35px; }
+            .letter-btn { width: 60px; height: 60px; font-size: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat-box" style="border-color: #9267FF;">⭐ <span id="score">0</span></div>
+        <div class="stat-box" style="border-color: #FF6B6B;"><span id="lives">❤️❤️❤️</span></div>
+    </div>
+    
+    <div id="game-container">
+        <div id="target-emoji">🐱</div>
+        <div id="slots-container">
+            </div>
+        <div id="letters-container">
+            </div>
+    </div>
+
+    <div id="game-over">
+        <h1 style="color: #FF6B6B; font-size: 50px; margin: 0;">Oops!</h1>
+        <p style="font-size: 24px; color: #333;">Out of hearts. Loading Ad...</p>
+    </div>
+
+<script>
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const targetEmojiEl = document.getElementById("target-emoji");
+const slotsContainer = document.getElementById("slots-container");
+const lettersContainer = document.getElementById("letters-container");
+const gameOverScreen = document.getElementById("game-over");
+
+// Game Variables
+let score = 0, lives = 3, gameActive = true, isPaused = false;
+let currentWord = "";
+let currentSpellingIndex = 0;
+
+// Dictionary of 3 and 4 letter words
+const wordList = [
+    { word: "CAT", emoji: "🐱" }, { word: "DOG", emoji: "🐶" },
+    { word: "SUN", emoji: "☀️" }, { word: "CAR", emoji: "🚗" },
+    { word: "PIG", emoji: "🐷" }, { word: "COW", emoji: "🐮" },
+    { word: "BUG", emoji: "🐛" }, { word: "HAT", emoji: "🎩" },
+    { word: "STAR", emoji: "⭐" }, { word: "FROG", emoji: "🐸" },
+    { word: "TREE", emoji: "🌳" }, { word: "BIRD", emoji: "🐦" }
+];
+
+// --- POKI-STYLE SDK INTEGRATION ---
+window.parent.postMessage({ type: 'GAME_READY' }, '*');
+window.addEventListener("message", (e) => {
+    if (e.data.type === 'AD_STARTED') isPaused = true;
+    if (e.data.type === 'AD_FINISHED') { isPaused = false; restart(); }
+});
+
+function loadLevel() {
+    // Pick a random word
+    let levelData = wordList[Math.floor(Math.random() * wordList.length)];
+    currentWord = levelData.word;
+    currentSpellingIndex = 0;
+    
+    // Update Emoji
+    targetEmojiEl.innerText = levelData.emoji;
+
+    // Build Empty Slots
+    slotsContainer.innerHTML = "";
+    for(let i = 0; i < currentWord.length; i++) {
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.id = `slot-${i}`;
+        slotsContainer.appendChild(slot);
+    }
+
+    // Build Scrambled Letter Buttons
+    let letters = currentWord.split("");
+    // Shuffle Array
+    letters.sort(() => Math.random() - 0.5);
+
+    lettersContainer.innerHTML = "";
+    letters.forEach((letter, index) => {
+        const btn = document.createElement("button");
+        btn.className = "letter-btn";
+        btn.innerText = letter;
+        btn.onclick = () => handleTap(btn, letter);
+        lettersContainer.appendChild(btn);
+    });
+}
+
+function handleTap(btn, letter) {
+    if (!gameActive || isPaused) return;
+
+    // What letter are they SUPPOSED to press?
+    let expectedLetter = currentWord[currentSpellingIndex];
+
+    if (letter === expectedLetter) {
+        // Correct Letter!
+        
+        // 1. Fill the slot
+        const slot = document.getElementById(`slot-${currentSpellingIndex}`);
+        slot.innerText = letter;
+        slot.classList.add("filled");
+
+        // 2. Hide the button they tapped
+        btn.classList.add("hidden");
+
+        // 3. Move to next letter
+        currentSpellingIndex++;
+
+        // 4. Did they finish the word?
+        if (currentSpellingIndex === currentWord.length) {
+            score++;
+            scoreEl.innerText = score;
+            
+            // Wait 1 second so they can see the completed word, then next level
+            setTimeout(() => {
+                loadLevel();
+            }, 1000);
+        }
+
+    } else {
+        // Wrong Letter!
+        lives--;
+        livesEl.innerText = "❤️".repeat(lives);
+        
+        // Shake animation for wrong guess
+        btn.style.transform = "translateX(-10px)";
+        setTimeout(() => btn.style.transform = "translateX(10px)", 50);
+        setTimeout(() => btn.style.transform = "translateX(0)", 100);
+
+        if (lives <= 0) {
+            gameActive = false;
+            gameOverScreen.style.display = "flex";
+            window.parent.postMessage({ type: 'SHOW_AD' }, '*');
+        }
+    }
+}
+
+function restart() {
+    score = 0; 
+    lives = 3; 
+    gameActive = true;
+    scoreEl.innerText = score;
+    livesEl.innerText = "❤️❤️❤️";
+    gameOverScreen.style.display = "none";
+    loadLevel();
+}
+
+// Start Game
+loadLevel();
+</script>
+</body>
+</html>

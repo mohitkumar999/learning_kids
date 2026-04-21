@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn & Play Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-color: #E3F2FD;
+            --header-bg: #42A5F5;
+            --text-dark: #1E293B;
+            --text-light: #FFFFFF;
+            --card-blue: #42A5F5;
+            --card-green: #66BB6A;
+            --card-pink: #EC407A;
+            --card-yellow: #FFCA28;
+            --btn-green: #66BB6A;
+            --btn-pink: #EC407A;
+            --btn-blue: #42A5F5;
+            --btn-yellow: #FFCA28;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            font-family: 'Nunito', sans-serif;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            background-image: radial-gradient(#BDE0FE 20%, transparent 20%);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1000px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(90deg, #42A5F5, #2196F3);
+            border-radius: 50px;
+            padding: 10px 30px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            margin-bottom: 30px;
+            flex-wrap: wrap; 
+            gap: 15px;
+        }
+
+        .logo { font-size: 24px; font-weight: 900; text-shadow: 2px 2px 0px #FFCA28; letter-spacing: 1px; cursor: pointer; }
+
+        .nav-links { display: flex; gap: 30px; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+        .nav-links div { cursor: pointer; padding: 5px 10px; border-radius: 15px; transition: 0.2s; }
+        .nav-links div:hover { background: rgba(255,255,255,0.2); }
+        .nav-links div.active { color: #FFCA28; text-shadow: 1px 1px 0px rgba(0,0,0,0.2); background: rgba(0,0,0,0.1); }
+
+        /* --- MAIN LAYOUT --- */
+        .main-layout { display: flex; gap: 30px; flex-direction: column; }
+        .content-area { width: 100%; display: flex; flex-direction: column; gap: 30px; }
+
+        /* --- SPA VIEW SYSTEM --- */
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- GAME WRAPPER --- */
+        .game-wrapper {
+            position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
+            border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden; border: 4px solid #42A5F5; display: none; margin-bottom: 20px;
+        }
+        .game-wrapper.active { display: block; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #ad-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(10px); }
+        #fullscreen-btn { position: absolute; top: 15px; right: 15px; background: rgba(0, 0, 0, 0.5); color: white; border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 10px; width: 45px; height: 45px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: 0.2s; }
+        #fullscreen-btn:hover { background: var(--card-blue); border-color: white; transform: scale(1.1); }
+
+        /* --- HERO SECTION --- */
+        .hero { background: white; border-radius: 30px; padding: 40px; text-align: center; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.05); overflow: hidden; }
+        .hero h1 { margin: 0; font-size: 36px; font-weight: 900; color: #1E293B; position: relative; z-index: 2; }
+        .hero h2 { margin: 10px 0 30px; font-size: 24px; font-weight: 700; color: #475569; position: relative; z-index: 2; }
+        .action-buttons { display: flex; justify-content: center; gap: 20px; position: relative; z-index: 2; flex-wrap: wrap; }
+        .btn-3d { padding: 15px 30px; border-radius: 30px; font-weight: 900; font-size: 18px; color: white; border: none; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-3d:active { transform: translateY(4px); box-shadow: none !important; }
+        .btn-green { background: var(--btn-green); box-shadow: 0 6px 0 #4CAF50; }
+        .btn-pink { background: var(--btn-pink); box-shadow: 0 6px 0 #D81B60; }
+        .mascot { position: absolute; left: 20px; bottom: -10px; font-size: 100px; line-height: 1; z-index: 1; opacity: 0.9; }
+
+        /* --- GAMES GRID --- */
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; width: 100%; }
+        .game-card { border-radius: 25px; padding: 20px; color: white; text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 220px; box-shadow: 0 8px 15px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer; }
+        .game-card:hover { transform: translateY(-5px); }
+        .game-card h3 { margin: 0; font-size: 20px; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .game-icon { font-size: 50px; margin: 10px 0; }
+        .card-btn { border: none; border-radius: 20px; padding: 10px; font-weight: 900; color: white; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); width: 100%; }
+        .card-blue { background: var(--card-blue); } .card-green { background: var(--card-green); } .card-pink { background: var(--card-pink); } .card-yellow { background: var(--card-yellow); }
+        .btn-yellow { background: var(--btn-yellow); } .btn-blue { background: var(--btn-blue); }
+
+        /* --- MODAL SYSTEM --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 30px; padding: 30px; text-align: center; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; font-weight: bold; cursor: pointer; color: #94A3B8; }
+        .close-modal:hover { color: #EF4444; }
+
+        /* --- FOOTER --- */
+        footer { margin-top: 30px; display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; color: #64748B; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; }
+        .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+        .footer-links span { cursor: pointer; transition: 0.2s; }
+        .footer-links span:hover { color: var(--card-blue); }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            header { justify-content: center; text-align: center; border-radius: 30px; }
+            .logo { width: 100%; margin-bottom: 5px; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .dashboard-container { padding: 15px; border-radius: 20px; }
+            .hero { padding: 30px 20px; }
+            .hero h1 { font-size: 28px; }
+            .hero h2 { font-size: 18px; }
+            .action-buttons { flex-direction: column; }
+            .btn-3d { width: 100%; }
+            .mascot { font-size: 60px; left: -10px; opacity: 0.2; } 
+            footer { flex-direction: column; align-items: center; text-align: center; }
+            .footer-links { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    
+    <header>
+        <div class="logo" onclick="switchView('home')">LEARN & PLAY</div>
+        <div class="nav-links">
+            <div id="nav-home" class="active" onclick="switchView('home')">Home</div>
+            <div id="nav-games" onclick="switchView('games')">Games</div>
+            <div id="nav-learn" onclick="switchView('learn')">Learn</div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        
+        <div class="content-area">
+            
+            <div class="game-wrapper" id="master-game-player">
+                <button id="fullscreen-btn" onclick="toggleFullScreen()" title="Go Fullscreen">⛶</button>
+                <div id="ad-overlay">
+                    <div class="star-loader" style="font-size: 50px;">⭐</div>
+                    <h2 style="color: #42A5F5; margin-top: 20px;">AD BREAK</h2>
+                    <p style="color: white;">Loading...</p>
+                </div>
+                <iframe id="game-runner" src="about:blank" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+
+            <div id="view-home" class="view-section active">
+                <div class="hero" style="margin-bottom: 30px;">
+                    <div class="mascot">🦁</div>
+                    <h1>LET'S PLAY & LEARN!</h1>
+                    <h2>Ready to Have Fun?</h2>
+                    <div class="action-buttons">
+                        <button class="btn-3d btn-green" onclick="switchView('learn')">📖 START LEARNING</button>
+                        <button class="btn-3d btn-pink" onclick="switchView('games')">🕹️ PLAY GAMES</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-games" class="view-section active">
+                <h2 style="color: #1E293B; margin-top: 0;">Choose a Game! 🎮</h2>
+                <div class="games-grid">
+                    <div class="game-card card-blue" onclick="loadGame('games/abc-fun/index.html')">
+                        <h3>ABC<br>FUN</h3>
+                        <div class="game-icon">🍎🔤</div>
+                        <button class="card-btn btn-yellow">START</button>
+                    </div>
+                    <div class="game-card card-green" onclick="loadGame('games/number-quest/index.html')">
+                        <h3>NUMBER<br>QUEST</h3>
+                        <div class="game-icon">🔢✨</div>
+                        <button class="card-btn btn-yellow">START</button>
+                    </div>
+                    <div class="game-card card-pink" onclick="loadGame('games/animal-adventure/index.html')">
+                        <h3>ANIMAL<br>ADVENTURE</h3>
+                        <div class="game-icon">🦒🐒</div>
+                        <button class="card-btn btn-blue">START</button>
+                    </div>
+                    <div class="game-card card-yellow" onclick="loadGame('games/word-magic/index.html')">
+                        <h3>WORD<br>MAGIC</h3>
+                        <div class="game-icon">📚🔠</div>
+                        <button class="card-btn btn-blue">START</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-learn" class="view-section">
+                <h2 style="color: #1E293B; margin-top: 0;">Learning Center 📚</h2>
+                <div class="hero" style="background: #FFF3E0; padding: 20px;">
+                    <h2 style="margin-top: 0; font-size: 22px; color: #1E293B;">Watch & Learn: A for Apple 🍎</h2>
+                    
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                        <iframe src="https://www.youtube.com/embed/jiey2s2Hjvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-links">
+            <span onclick="openModal('Help Center', 'How can we help you today? Contact support at support@kidslearnhub.com')">❓ Help</span>
+            <span onclick="openModal('Parents Portal', 'Enter Parent PIN to view detailed analytics and child progress.')">👨‍👩‍👧 Parents</span>
+            <span onclick="openModal('About Us', 'We make learning fun for kids everywhere!')">ℹ️ About Us</span>
+            <span onclick="openModal('Privacy Policy', 'Your data is safe and strictly COPPA compliant.')">🔒 Privacy</span>
+        </div>
+        <div>© 2026 Kids Learn Hub</div>
+    </footer>
+
+</div>
+
+<div class="modal-overlay" id="global-modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">×</span>
+        <h2 id="modal-title" style="color: #1E293B; margin-top: 0;">Title</h2>
+        <p id="modal-body" style="color: #475569; font-size: 18px;">Body text goes here...</p>
+        <button class="btn-3d btn-blue" style="width: 100%; margin-top: 20px;" onclick="closeModal()">Got it!</button>
+    </div>
+</div>
+
+<script>
+    // --- GLOBAL STATE ---
+    let globalData = {
+        coins: 500
+        
+    };
+
+    // --- NAVIGATION & ROUTING LOGIC ---
+    function switchView(viewName) {
+        document.querySelectorAll('.nav-links div').forEach(el => el.classList.remove('active'));
+        document.getElementById(`nav-${viewName}`).classList.add('active');
+
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+
+        if (viewName === 'home') {
+            document.getElementById('view-home').classList.add('active');
+            document.getElementById('view-games').classList.add('active');
+        } else {
+            document.getElementById(`view-${viewName}`).classList.add('active');
+        }
+
+        if (viewName !== 'games' && viewName !== 'home') {
+            document.getElementById('master-game-player').classList.remove('active');
+            document.getElementById('game-runner').src = "about:blank"; 
+        }
+    }
+
+    // --- GAME LOADING LOGIC ---
+    const gameIframe = document.getElementById('game-runner');
+    const adOverlay = document.getElementById('ad-overlay');
+    const gamePlayerWrapper = document.getElementById('master-game-player');
+
+    function loadGame(url) {
+        switchView('games');
+        
+        gamePlayerWrapper.classList.add('active');
+        gameIframe.src = url;
+        adOverlay.style.display = 'none';
+        
+        gamePlayerWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // --- MODAL LOGIC ---
+    function openModal(title, text) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-body').innerText = text;
+        document.getElementById('global-modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('global-modal').classList.remove('active');
+    }
+
+    // --- POKI SDK AD LOGIC ---
+    window.addEventListener("message", (event) => {
+        if (event.data.type === 'SHOW_AD') {
+            
+            if(adOverlay) adOverlay.style.display = 'flex';
+            gameIframe?.contentWindow?.postMessage({ type: 'AD_STARTED' }, '*');
+
+            setTimeout(() => {
+                rewardPlayer(5);
+                
+                if(adOverlay) adOverlay.style.display = 'none';
+                gameIframe?.contentWindow?.postMessage({ type: 'AD_FINISHED' }, '*');
+            }, 3000);
+        }
+    });
+
+    // --- ECONOMY LOGIC (Hidden) ---
+    function rewardPlayer(coinsAdded) {
+        globalData.coins += coinsAdded;
+        // Visual updates removed as requested. Data still tracks in the background.
+    }
+
+    // --- FULLSCREEN LOGIC ---
+    function toggleFullScreen() {
+        const gameWrapper = document.getElementById('master-game-player');
+        if (!document.fullscreenElement) {
+            if (gameWrapper.requestFullscreen) gameWrapper.requestFullscreen();
+            else if (gameWrapper.webkitRequestFullscreen) gameWrapper.webkitRequestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+    }
+</script>
+</body>
+</html>

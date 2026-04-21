@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { margin:0; overflow:hidden; background:#111; touch-action: none; }
+        canvas { display:block; }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let score = 0, gameActive = true, isPaused = false, speed = 6, spawnTimer = 0, groundY;
+let obstacles = [];
+
+const player = {
+    x: 80, y: 0, w: 45, h: 45, dy: 0,
+    gravity: 0.9, maxFall: 18, jumpForce: -16,
+    grounded: false, coyoteTime: 0, jumpBuffer: 0, scaleY: 1
+};
+
+window.parent.postMessage({ type: 'GAME_READY' }, '*');
+
+window.addEventListener("message", (e) => {
+    if (e.data.type === 'AD_STARTED') isPaused = true;
+    if (e.data.type === 'AD_FINISHED') { isPaused = false; restart(); }
+});
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    groundY = canvas.height * 0.85;
+}
+window.addEventListener("resize", resize);
+resize();
+
+function jump() {
+    if (!gameActive && !isPaused) restart();
+    else player.jumpBuffer = 8;
+}
+
+// SUPPORT FOR SPACE, W, AND ARROW UP
+window.addEventListener("keydown", e => {
+    if(["Space", "ArrowUp", "KeyW"].includes(e.code)) {
+        e.preventDefault();
+        jump();
+    }
+});
+window.addEventListener("touchstart", e => { e.preventDefault(); jump(); }, {passive:false});
+
+function update() {
+    if(!gameActive || isPaused) return;
+
+    spawnTimer++;
+    if(spawnTimer > 75) {
+        const h = 30 + Math.random()*60;
+        obstacles.push({ x: canvas.width, y: groundY - h, w: 30 + Math.random()*40, h: h });
+        spawnTimer = 0;
+    }
+
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    if(player.y >= groundY - player.h) {
+        player.y = groundY - player.h;
+        player.dy = 0;
+        player.grounded = true;
+        player.coyoteTime = 6;
+    } else {
+        player.grounded = false;
+        player.coyoteTime--;
+    }
+
+    if(player.jumpBuffer > 0 && player.coyoteTime > 0) {
+        player.dy = player.jumpForce;
+        player.jumpBuffer = 0;
+        player.coyoteTime = 0;
+    }
+    player.jumpBuffer--;
+
+    for(let i = obstacles.length - 1; i >= 0; i--) {
+        let o = obstacles[i];
+        o.x -= speed;
+        if(o.x + o.w < 0) { obstacles.splice(i,1); score++; speed += 0.1; }
+        if(player.x < o.x + o.w && player.x + player.w > o.x && 
+           player.y < o.y + o.h && player.y + player.h > o.y) {
+            gameActive = false;
+            window.parent.postMessage({ type: 'SHOW_AD' }, '*');
+        }
+    }
+}
+
+function draw() {
+    ctx.fillStyle="#111";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    
+    ctx.fillStyle="#333";
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+    
+    ctx.fillStyle="#00ffc8";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+
+    ctx.fillStyle="#ff4d4d";
+    obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+
+    ctx.fillStyle="white";
+    ctx.font="bold 20px Arial";
+    ctx.fillText("Score: " + score, 20, 40);
+
+    if(!gameActive) {
+        ctx.fillStyle="rgba(0,0,0,0.7)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="white";
+        ctx.textAlign="center";
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+    }
+
+    update();
+    requestAnimationFrame(draw);
+}
+
+function restart() {
+    score = 0; speed = 6; obstacles = []; gameActive = true;
+    player.y = groundY - player.h;
+}
+draw();
+</script>
+</body>
+</html>
